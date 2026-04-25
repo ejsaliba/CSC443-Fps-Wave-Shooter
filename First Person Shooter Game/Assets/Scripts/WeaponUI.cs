@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class WeaponUI : MonoBehaviour
 {
@@ -18,9 +19,13 @@ public class WeaponUI : MonoBehaviour
     [Header("Kill Streak UI")]
     [SerializeField] TextMeshProUGUI killStreakText;
 
+    [Header("Heal Ability UI")]
+    [SerializeField] Image healAbilityImage;
+    [SerializeField] Color normalColor = Color.white;
+    [SerializeField] Color cooldownColor = Color.gray;
+
     void Start()
     {
-        // Ensure it's OFF at start
         if (killStreakText != null)
             killStreakText.gameObject.SetActive(false);
     }
@@ -62,6 +67,19 @@ public class WeaponUI : MonoBehaviour
             if (killStreakText.gameObject.activeSelf != active)
             {
                 killStreakText.gameObject.SetActive(active);
+            }
+        }
+
+        // -------- HEAL ABILITY UI --------
+        if (playerHealth != null && healAbilityImage != null)
+        {
+            if (playerHealth.IsHealOnCooldown)
+            {
+                healAbilityImage.color = cooldownColor;
+            }
+            else
+            {
+                healAbilityImage.color = normalColor;
             }
         }
     }

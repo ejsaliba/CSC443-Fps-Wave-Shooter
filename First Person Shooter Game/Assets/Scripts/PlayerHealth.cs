@@ -3,51 +3,93 @@ using UnityEngine.InputSystem;
 
 public class PlayerHealth : MonoBehaviour
 {
-    public int maxHealth = 15;
+    [Header("Health")]
+    [SerializeField] private int maxHealth = 15;
     private int currentHealth;
 
-    public GameObject deathVFX;
     private bool isDead = false;
 
-public int GetHPValue()
-{
-    return currentHealth;
-}
+public GameObject deathVFX; // Assign your VFX prefab here
+    public float destroyDelay = 0.1f; // Small delay before destroying player
+    
+    [Header("Healing Ability")]
+    [SerializeField] private int healAmount = 5;
+    [SerializeField] private float healCooldown = 20f;
 
-    void Start()
+    private float healTimer = 0f;
+
+    public bool IsHealOnCooldown => healTimer > 0f;
+
+    private void Awake()
     {
         currentHealth = maxHealth;
     }
 
-    public void TakeDamage(int amount)
+    private void Update()
     {
         if (isDead) return;
 
-        currentHealth -= amount;
+        // cooldown
+        if (healTimer > 0f)
+        {
+            healTimer -= Time.deltaTime;
+        }
 
-        if (currentHealth <= 0)
+        // input (new input system)
+        if (Keyboard.current != null &&
+            Keyboard.current.qKey.wasPressedThisFrame &&
+            healTimer <= 0f)
+        {
+            Heal(healAmount);
+            healTimer = healCooldown;
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead) return;
+
+        currentHealth -= damage;
+
+        // clamp immediately
+        currentHealth = Mathf.Max(currentHealth, 0);
+
+        if (currentHealth == 0)
         {
             Die();
         }
     }
 
+    void Heal(int amount)
+    {
+        if (isDead) return;
+
+        currentHealth += amount;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+    }
+
     void Die()
     {
+        if (isDead) return;
+
         isDead = true;
 
+        Debug.Log("Player Died");
+
+                // Spawn VFX if assigned
         if (deathVFX != null)
         {
             Instantiate(deathVFX, transform.position, transform.rotation);
         }
 
-        Destroy(gameObject);
+        // Destroy player after short delay (lets VFX spawn properly)
+        Destroy(gameObject, destroyDelay);
+
+       
     }
 
-    void Update()
+    public int GetHPValue()
     {
-        if (Keyboard.current.kKey.wasPressedThisFrame)
-        {
-            TakeDamage(1);
-        }
+        return currentHealth;
     }
 }

@@ -3,7 +3,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
-
     [Header("Ammo")]
     public int maxAmmo = 20;
 
@@ -16,6 +15,14 @@ public class WeaponData : ScriptableObject
     public bool isAutomatic;
     public float fireRate = 100.0f;
 
+    [Header("Projectile Weapon")]
+    public bool isProjectileWeapon = false;
+    public GameObject projectilePrefab;
+    public float projectileForce = 25f;
+
+    [Header("Explosion")]
+    public float explosionRadius = 5f;
+
     [Header("VFX")]
     public GameObject hitVFXPrefab;
 
@@ -25,5 +32,4 @@ public class WeaponData : ScriptableObject
     [Header("Recoil parameters")]
     public float recoilX = 0.5f;
     public float recoilY = 2f;
-
 }

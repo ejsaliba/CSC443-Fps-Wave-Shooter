@@ -8,9 +8,12 @@ public class EnemyHealth : MonoBehaviour, IPoolable
 
     public event Action<EnemyHealth> OnDied;
 
+    private Robot robot;
+
     private void Awake()
     {
         currentHealth = startingHealth;
+        robot = GetComponent<Robot>();
     }
 
     public void TakeDamage(int damage)
@@ -25,6 +28,13 @@ public class EnemyHealth : MonoBehaviour, IPoolable
 
     private void Die()
     {
+        // --- SCORE SYSTEM ---
+        if (ScoreManager.Instance != null && robot != null)
+        {
+            bool exploded = robot.enemyType == Robot.EnemyType.Exploder && robot.HasExploded;
+            ScoreManager.Instance.RegisterKill(robot.enemyType, exploded);
+        }
+
         OnDied?.Invoke(this);
     }
 

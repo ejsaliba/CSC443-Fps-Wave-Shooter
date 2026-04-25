@@ -7,13 +7,27 @@ public class WeaponUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI ammoText;
     [SerializeField] TextMeshProUGUI weaponNameText;
 
-    [Header("Player Health UI")]
+    [Header("Health")]
     [SerializeField] PlayerHealth playerHealth;
     [SerializeField] TextMeshProUGUI healthText;
 
+    [Header("Score")]
+    [SerializeField] TextMeshProUGUI currentScoreText;
+    [SerializeField] TextMeshProUGUI totalScoreText;
+
+    [Header("Kill Streak UI")]
+    [SerializeField] TextMeshProUGUI killStreakText;
+
+    void Start()
+    {
+        // Ensure it's OFF at start
+        if (killStreakText != null)
+            killStreakText.gameObject.SetActive(false);
+    }
+
     void Update()
     {
-        // ---------------- WEAPON UI ----------------
+        // -------- WEAPON --------
         Weapon weapon = activeWeapon.CurrentWeapon;
 
         if (weapon == null)
@@ -27,14 +41,28 @@ public class WeaponUI : MonoBehaviour
             ammoText.text = $"{weapon.CurrentAmmo} / {weapon.Data.maxAmmo}";
         }
 
-        // ---------------- HEALTH UI ----------------
+        // -------- HEALTH --------
         if (playerHealth != null)
         {
             healthText.text = "HP: " + playerHealth.GetHPValue();
         }
-        else
+
+        // -------- SCORE --------
+        if (ScoreManager.Instance != null)
         {
-            healthText.text = "";
+            currentScoreText.text = "Score: " + ScoreManager.Instance.currentScore;
+            totalScoreText.text = "Total: " + ScoreManager.Instance.totalScore;
+        }
+
+        // -------- KILL STREAK --------
+        if (ScoreManager.Instance != null && killStreakText != null)
+        {
+            bool active = ScoreManager.Instance.IsStreakActive;
+
+            if (killStreakText.gameObject.activeSelf != active)
+            {
+                killStreakText.gameObject.SetActive(active);
+            }
         }
     }
 }

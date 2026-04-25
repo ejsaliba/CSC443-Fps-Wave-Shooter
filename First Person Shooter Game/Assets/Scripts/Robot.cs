@@ -19,16 +19,19 @@ public class Robot : MonoBehaviour
     public float attackRange = 2f;
     public float attackCooldown = 1.5f;
 
-    [Header("Ranged Settings")]
+    [Header("Ranged")]
     public GameObject projectilePrefab;
     public Transform firePoint;
     public float projectileForce = 20f;
 
-    [Header("Exploder Settings")]
+    [Header("Exploder")]
     public float explosionRadius = 5f;
     public GameObject explosionVFX;
 
     private float lastAttackTime;
+    private bool hasExploded = false;
+
+    public bool HasExploded => hasExploded;
 
     NavMeshAgent agent;
     FirstPersonController player;
@@ -42,7 +45,9 @@ public class Robot : MonoBehaviour
     private void Start()
     {
         player = FindAnyObjectByType<FirstPersonController>();
-        playerHealth = player.GetComponent<PlayerHealth>();
+
+        if (player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
     }
 
     private void OnEnable()
@@ -59,6 +64,8 @@ public class Robot : MonoBehaviour
 
         if (playerHealth == null && player != null)
             playerHealth = player.GetComponent<PlayerHealth>();
+
+        hasExploded = false;
     }
 
     private void Update()
@@ -67,24 +74,8 @@ public class Robot : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.transform.position);
 
-float stopDistance = attackRange - 1.5f; // slightly closer than attack range
-
-if (enemyType == EnemyType.Ranged)
-{
-    if (distance > stopDistance)
-    {
-        agent.SetDestination(player.transform.position);
-    }
-    else
-    {
-        agent.ResetPath(); // STOP MOVING
-    }
-}
-else
-{
-    // Melee + Exploder still chase normally
-    agent.SetDestination(player.transform.position);
-}
+        if (agent.isOnNavMesh)
+            agent.SetDestination(player.transform.position);
 
         switch (enemyType)
         {
@@ -115,7 +106,6 @@ else
     {
         float stopDistance = Mathf.Max(attackRange - 2f, 2f);
 
-        // stop moving when in range
         if (distance <= stopDistance)
         {
             agent.ResetPath();
@@ -136,9 +126,11 @@ else
     {
         if (projectilePrefab == null || firePoint == null) return;
 
-        GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        Vector3 spawnPos = firePoint.position + firePoint.forward * 0.5f;
 
-        Vector3 direction = (player.transform.position - firePoint.position).normalized;
+        GameObject proj = Instantiate(projectilePrefab, spawnPos, firePoint.rotation);
+
+        Vector3 direction = (player.transform.position - spawnPos).normalized;
 
         Rigidbody rb = proj.GetComponent<Rigidbody>();
 
@@ -158,6 +150,8 @@ else
 
     void Explode()
     {
+        hasExploded = true;
+
         if (playerHealth != null)
         {
             float dist = Vector3.Distance(transform.position, player.transform.position);

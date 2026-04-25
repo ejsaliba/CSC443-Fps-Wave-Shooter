@@ -4,7 +4,7 @@ using UnityEngine;
 public class EnemySpawner : MonoBehaviour
 {
     [Header("Pool Settings")]
-    [SerializeField] private EnemyHealth enemyPrefab;
+    [SerializeField] private EnemyHealth[] enemyPrefabs; // MULTIPLE TYPES
     [SerializeField] private int prewarmCount = 5;
 
     [Header("Spawn Settings")]
@@ -12,11 +12,17 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private float spawnInterval = 3f;
     [SerializeField] private int maxActiveEnemies = 10;
 
-    private ObjectPool<EnemyHealth> pool;
+    private ObjectPool<EnemyHealth>[] pools;
 
     private void Start()
     {
-        pool = new ObjectPool<EnemyHealth>(enemyPrefab, transform, prewarmCount);
+        pools = new ObjectPool<EnemyHealth>[enemyPrefabs.Length];
+
+        for (int i = 0; i < enemyPrefabs.Length; i++)
+        {
+            pools[i] = new ObjectPool<EnemyHealth>(enemyPrefabs[i], transform, prewarmCount);
+        }
+
         StartCoroutine(SpawnLoop());
     }
 
@@ -26,21 +32,29 @@ public class EnemySpawner : MonoBehaviour
         {
             yield return new WaitForSeconds(spawnInterval);
 
-            if (pool.CountActive < maxActiveEnemies && spawnPoints.Length > 0)
+            int totalActive = 0;
+            foreach (var p in pools)
+                totalActive += p.CountActive;
+
+            if (totalActive < maxActiveEnemies && spawnPoints.Length > 0)
                 SpawnEnemy();
         }
     }
 
     private void SpawnEnemy()
     {
+        int index = Random.Range(0, pools.Length);
+        var pool = pools[index];
+
         Transform point = spawnPoints[Random.Range(0, spawnPoints.Length)];
         EnemyHealth enemy = pool.Get(point.position, point.rotation);
-        enemy.OnDied += HandleEnemyDied;
+
+        enemy.OnDied += (e) => HandleEnemyDied(e, pool);
     }
 
-    private void HandleEnemyDied(EnemyHealth enemy)
+    private void HandleEnemyDied(EnemyHealth enemy, ObjectPool<EnemyHealth> pool)
     {
-        enemy.OnDied -= HandleEnemyDied;
+        enemy.OnDied -= (e) => HandleEnemyDied(e, pool);
         pool.Return(enemy);
     }
 }

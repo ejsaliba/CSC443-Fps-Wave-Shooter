@@ -4,8 +4,35 @@ using StarterAssets;
 
 public class Robot : MonoBehaviour
 {
+    public enum EnemyType
+    {
+        Melee,
+        Ranged,
+        Exploder
+    }
+
+    [Header("Type")]
+    public EnemyType enemyType;
+
+    [Header("Combat")]
+    public int damage = 1;
+    public float attackRange = 2f;
+    public float attackCooldown = 1.5f;
+
+    [Header("Ranged Settings")]
+    public GameObject projectilePrefab;
+    public Transform firePoint;
+    public float projectileForce = 20f;
+
+    [Header("Exploder Settings")]
+    public float explosionRadius = 5f;
+    public GameObject explosionVFX;
+
+    private float lastAttackTime;
+
     NavMeshAgent agent;
     FirstPersonController player;
+    PlayerHealth playerHealth;
 
     private void Awake()
     {
@@ -15,6 +42,7 @@ public class Robot : MonoBehaviour
     private void Start()
     {
         player = FindAnyObjectByType<FirstPersonController>();
+        playerHealth = player.GetComponent<PlayerHealth>();
     }
 
     private void OnEnable()
@@ -28,11 +56,132 @@ public class Robot : MonoBehaviour
 
         if (player == null)
             player = FindAnyObjectByType<FirstPersonController>();
+
+        if (playerHealth == null && player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
     }
 
     private void Update()
     {
-        if (agent.isOnNavMesh)
+        if (player == null) return;
+
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+
+float stopDistance = attackRange - 1.5f; // slightly closer than attack range
+
+if (enemyType == EnemyType.Ranged)
+{
+    if (distance > stopDistance)
+    {
+        agent.SetDestination(player.transform.position);
+    }
+    else
+    {
+        agent.ResetPath(); // STOP MOVING
+    }
+}
+else
+{
+    // Melee + Exploder still chase normally
+    agent.SetDestination(player.transform.position);
+}
+
+        switch (enemyType)
+        {
+            case EnemyType.Melee:
+                HandleMelee(distance);
+                break;
+
+            case EnemyType.Ranged:
+                HandleRanged(distance);
+                break;
+
+            case EnemyType.Exploder:
+                HandleExploder(distance);
+                break;
+        }
+    }
+
+    void HandleMelee(float distance)
+    {
+        if (distance <= attackRange && Time.time >= lastAttackTime + attackCooldown)
+        {
+            playerHealth.TakeDamage(damage);
+            lastAttackTime = Time.time;
+        }
+    }
+
+    void HandleRanged(float distance)
+    {
+        float stopDistance = Mathf.Max(attackRange - 2f, 2f);
+
+        // stop moving when in range
+        if (distance <= stopDistance)
+        {
+            agent.ResetPath();
+
+            if (Time.time >= lastAttackTime + attackCooldown)
+            {
+                ShootProjectile();
+                lastAttackTime = Time.time;
+            }
+        }
+        else
+        {
             agent.SetDestination(player.transform.position);
+        }
+    }
+
+    void ShootProjectile()
+    {
+        if (projectilePrefab == null || firePoint == null) return;
+
+        GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+
+        Vector3 direction = (player.transform.position - firePoint.position).normalized;
+
+        Rigidbody rb = proj.GetComponent<Rigidbody>();
+
+        if (rb != null)
+        {
+            rb.linearVelocity = direction * projectileForce;
+        }
+    }
+
+    void HandleExploder(float distance)
+    {
+        if (distance <= attackRange)
+        {
+            Explode();
+        }
+    }
+
+    void Explode()
+    {
+        if (playerHealth != null)
+        {
+            float dist = Vector3.Distance(transform.position, player.transform.position);
+            if (dist <= explosionRadius)
+            {
+                playerHealth.TakeDamage(damage);
+            }
+        }
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
+        foreach (var hit in hits)
+        {
+            EnemyHealth eh = hit.GetComponent<EnemyHealth>();
+            if (eh != null && eh.gameObject != gameObject)
+            {
+                eh.TakeDamage(damage);
+            }
+        }
+
+        if (explosionVFX != null)
+        {
+            Instantiate(explosionVFX, transform.position, Quaternion.identity);
+        }
+
+        GetComponent<EnemyHealth>().TakeDamage(999);
     }
 }

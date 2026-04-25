@@ -3,58 +3,84 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Pool Settings")]
-    [SerializeField] private EnemyHealth[] enemyPrefabs; // MULTIPLE TYPES
-    [SerializeField] private int prewarmCount = 5;
+    [Header("Enemy Types (ORDER MATTERS)")]
+    [SerializeField] private EnemyHealth meleePrefab;
+    [SerializeField] private EnemyHealth rangedPrefab;
+    [SerializeField] private EnemyHealth explosivePrefab;
 
-    [Header("Spawn Settings")]
     [SerializeField] private Transform[] spawnPoints;
-    [SerializeField] private float spawnInterval = 3f;
-    [SerializeField] private int maxActiveEnemies = 10;
+    [SerializeField] private float spawnInterval = 1f;
+    [SerializeField] private int maxActiveEnemies = 15;
 
-    private ObjectPool<EnemyHealth>[] pools;
+    private ObjectPool<EnemyHealth> meleePool;
+    private ObjectPool<EnemyHealth> rangedPool;
+    private ObjectPool<EnemyHealth> explosivePool;
 
-    private void Start()
+    private int totalToSpawn;
+    private int spawned;
+
+    private void Awake()
     {
-        pools = new ObjectPool<EnemyHealth>[enemyPrefabs.Length];
-
-        for (int i = 0; i < enemyPrefabs.Length; i++)
-        {
-            pools[i] = new ObjectPool<EnemyHealth>(enemyPrefabs[i], transform, prewarmCount);
-        }
-
-        StartCoroutine(SpawnLoop());
+        meleePool = new ObjectPool<EnemyHealth>(meleePrefab, transform, 5);
+        rangedPool = new ObjectPool<EnemyHealth>(rangedPrefab, transform, 5);
+        explosivePool = new ObjectPool<EnemyHealth>(explosivePrefab, transform, 5);
     }
 
-    private IEnumerator SpawnLoop()
+    public void StartWave(int melee, int ranged, int explosive)
     {
-        while (true)
+        StopAllCoroutines();
+
+        totalToSpawn = melee + ranged + explosive;
+        spawned = 0;
+
+        StartCoroutine(SpawnRoutine(melee, ranged, explosive));
+    }
+
+    IEnumerator SpawnRoutine(int melee, int ranged, int explosive)
+    {
+        int m = 0, r = 0, e = 0;
+
+        while (spawned < totalToSpawn)
         {
             yield return new WaitForSeconds(spawnInterval);
 
-            int totalActive = 0;
-            foreach (var p in pools)
-                totalActive += p.CountActive;
+            if (GetActiveCount() >= maxActiveEnemies)
+                continue;
 
-            if (totalActive < maxActiveEnemies && spawnPoints.Length > 0)
-                SpawnEnemy();
+            if (m < melee)
+            {
+                Spawn(meleePool);
+                m++;
+            }
+            else if (r < ranged)
+            {
+                Spawn(rangedPool);
+                r++;
+            }
+            else if (e < explosive)
+            {
+                Spawn(explosivePool);
+                e++;
+            }
+
+            spawned++;
         }
     }
 
-    private void SpawnEnemy()
+    void Spawn(ObjectPool<EnemyHealth> pool)
     {
-        int index = Random.Range(0, pools.Length);
-        var pool = pools[index];
-
         Transform point = spawnPoints[Random.Range(0, spawnPoints.Length)];
         EnemyHealth enemy = pool.Get(point.position, point.rotation);
 
-        enemy.OnDied += (e) => HandleEnemyDied(e, pool);
+        enemy.OnDied += (e) =>
+        {
+            pool.Return(e);
+            WaveManager.Instance.OnEnemyDied();
+        };
     }
 
-    private void HandleEnemyDied(EnemyHealth enemy, ObjectPool<EnemyHealth> pool)
+    int GetActiveCount()
     {
-        enemy.OnDied -= (e) => HandleEnemyDied(e, pool);
-        pool.Return(enemy);
+        return meleePool.CountActive + rangedPool.CountActive + explosivePool.CountActive;
     }
 }

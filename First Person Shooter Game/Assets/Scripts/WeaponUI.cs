@@ -16,7 +16,7 @@ public class WeaponUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI currentScoreText;
     [SerializeField] TextMeshProUGUI totalScoreText;
 
-    [Header("Kill Streak UI")]
+    [Header("Kill Streak")]
     [SerializeField] TextMeshProUGUI killStreakText;
 
     [Header("Heal Ability UI")]
@@ -24,13 +24,16 @@ public class WeaponUI : MonoBehaviour
     [SerializeField] Color normalColor = Color.white;
     [SerializeField] Color cooldownColor = Color.gray;
 
-    void Start()
+    [Header("Wave UI")]
+    [SerializeField] TextMeshProUGUI waveText;
+
+    private void Start()
     {
         if (killStreakText != null)
             killStreakText.gameObject.SetActive(false);
     }
 
-    void Update()
+    private void Update()
     {
         // -------- WEAPON --------
         Weapon weapon = activeWeapon.CurrentWeapon;
@@ -70,16 +73,25 @@ public class WeaponUI : MonoBehaviour
             }
         }
 
-        // -------- HEAL ABILITY UI --------
+        // -------- HEAL ABILITY --------
         if (playerHealth != null && healAbilityImage != null)
         {
             if (playerHealth.IsHealOnCooldown)
-            {
                 healAbilityImage.color = cooldownColor;
+            else
+                healAbilityImage.color = normalColor;
+        }
+
+        // -------- WAVE UI --------
+        if (WaveManager.Instance != null && waveText != null)
+        {
+            if (WaveManager.Instance.IsWaveInProgress)
+            {
+                waveText.text = "Wave " + WaveManager.Instance.CurrentWave;
             }
             else
             {
-                healAbilityImage.color = normalColor;
+                waveText.text = "Go to the next zone";
             }
         }
     }

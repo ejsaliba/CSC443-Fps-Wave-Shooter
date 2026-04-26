@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 391ed0bc6cf2db94baafdd77be0badf7, type: 3}
   m_Name: Machine Gun
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  maxAmmo: 45
+  maxAmmo: 100
   weaponName: Machine Gun
   damage: 1
   range: 20

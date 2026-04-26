@@ -47,8 +47,14 @@ public class WaveManager : MonoBehaviour
         StartNextWave();
     }
 
+    // ---------------- WAVE START ----------------
+
     public void StartNextWave()
     {
+        // 🔴 BLOCK START IF SHOP IS STILL OPEN
+        if (ShopMenuKeyboard.Instance != null && ShopMenuKeyboard.Instance.IsOpen)
+            return;
+
         currentWave++;
 
         waveEnded = false;
@@ -59,10 +65,13 @@ public class WaveManager : MonoBehaviour
         activeZone = 1 - activeZone;
         currentSpawner = (activeZone == 0) ? spawnerA : spawnerB;
 
-        barrier.SetActive(true);
+        if (barrier != null)
+            barrier.SetActive(true);
 
         SpawnWave();
     }
+
+    // ---------------- SPAWN LOGIC ----------------
 
     void SpawnWave()
     {
@@ -102,8 +111,13 @@ public class WaveManager : MonoBehaviour
 
         enemiesAlive = melee + ranged + explosive;
 
-        currentSpawner.StartWave(melee, ranged, explosive);
+        if (currentSpawner != null)
+            currentSpawner.StartWave(melee, ranged, explosive);
+        else
+            Debug.LogError("WaveManager: Current spawner is NULL");
     }
+
+    // ---------------- ENEMY TRACKING ----------------
 
     public void OnEnemyDied()
     {
@@ -117,25 +131,31 @@ public class WaveManager : MonoBehaviour
         }
     }
 
+    // ---------------- WAVE COMPLETE ----------------
+
     void WaveCompleted()
     {
         if (waveEnded) return;
         waveEnded = true;
 
-        barrier.SetActive(false);
-        waitingForPlayer = true;
         waveInProgress = false;
+        waitingForPlayer = true;
 
-        // 🔥 SAFE SHOP CALL (THIS FIXES YOUR CRASH)
+        if (barrier != null)
+            barrier.SetActive(false);
+
+        // 🔥 OPEN SHOP CLEANLY (NO COROUTINE HACKS)
         if (ShopMenuKeyboard.Instance != null)
         {
             ShopMenuKeyboard.Instance.OpenShop();
         }
         else
         {
-            Debug.LogWarning("ShopMenuKeyboard instance is NULL - shop not opened");
+            Debug.LogError("ShopMenuKeyboard is NULL — cannot open shop");
         }
     }
+
+    // ---------------- ZONE SYSTEM ----------------
 
     public void PlayerEnteredZone(int zoneIndex)
     {

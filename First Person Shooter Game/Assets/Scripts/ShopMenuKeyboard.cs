@@ -11,6 +11,7 @@ public class ShopMenuKeyboard : MonoBehaviour
     [SerializeField] private GameObject shopUI;
     [SerializeField] private TextMeshProUGUI[] options;
     [SerializeField] private TextMeshProUGUI messageText;
+    [SerializeField] private TextMeshProUGUI pointsText; // 🔥 NEW
 
     [Header("Weapon Data")]
     [SerializeField] private WeaponData machineGunData;
@@ -64,6 +65,8 @@ public class ShopMenuKeyboard : MonoBehaviour
         {
             Select();
         }
+
+        RefreshPoints(); // 🔥 live update while open
     }
 
     // ---------------- OPEN / CLOSE ----------------
@@ -79,12 +82,12 @@ public class ShopMenuKeyboard : MonoBehaviour
 
         Time.timeScale = 0f;
 
-        // disable gameplay
         if (playerController != null) playerController.enabled = false;
         if (playerInput != null) playerInput.enabled = false;
         if (activeWeapon != null) activeWeapon.enabled = false;
 
         ClearMessage();
+        RefreshPoints(); // 🔥 update immediately on open
     }
 
     void CloseShop()
@@ -98,13 +101,10 @@ public class ShopMenuKeyboard : MonoBehaviour
 
         Time.timeScale = 1f;
 
-        // enable gameplay
         if (playerController != null) playerController.enabled = true;
         if (playerInput != null) playerInput.enabled = true;
         if (activeWeapon != null) activeWeapon.enabled = true;
 
-        if (WaveManager.Instance != null)
-            WaveManager.Instance.StartNextWave();
     }
 
     // ---------------- INPUT ----------------
@@ -134,6 +134,12 @@ public class ShopMenuKeyboard : MonoBehaviour
 
     bool Spend(int cost)
     {
+        if (ScoreManager.Instance == null)
+        {
+            Debug.LogError("ScoreManager missing!");
+            return false;
+        }
+
         if (ScoreManager.Instance.currentScore < cost)
         {
             ShowMessage("Not enough points!");
@@ -141,17 +147,24 @@ public class ShopMenuKeyboard : MonoBehaviour
         }
 
         ScoreManager.Instance.currentScore -= cost;
+        RefreshPoints(); // 🔥 update UI immediately
         return true;
     }
 
-    void BuyDoubleJump()
-    {
-        if (!Spend(100)) return;
+   void BuyDoubleJump()
+{
+    if (!Spend(100)) return;
 
-        PlayerMovementUpgrade.Instance.EnableDoubleJump();
-        ShowMessage("Double Jump Unlocked");
+    if (PlayerMovementUpgrade.Instance == null)
+    {
+        ShowMessage("Double Jump system not found");
+        Debug.LogError("PlayerMovementUpgrade.Instance is NULL");
+        return;
     }
 
+    PlayerMovementUpgrade.Instance.EnableDoubleJump();
+    ShowMessage("Double Jump Unlocked");
+}
     void BuyMachineGun()
     {
         if (!Spend(200)) return;
@@ -170,17 +183,21 @@ public class ShopMenuKeyboard : MonoBehaviour
         UnlockWeapon(rocketData);
     }
 
-    void BuyAmmo()
+   void BuyAmmo()
+{
+    if (!Spend(100)) return;
+
+    Weapon[] weapons = weaponSwitcher.GetComponentsInChildren<Weapon>(true);
+
+    foreach (Weapon w in weapons)
     {
-        if (!Spend(100)) return;
+        if (w == null) continue;
 
-        foreach (Weapon w in FindObjectsOfType<Weapon>())
-        {
-            w.RefillAmmo();
-        }
-
-        ShowMessage("Ammo Refilled");
+        w.RefillAmmo();
     }
+
+    ShowMessage("All weapons reloaded");
+}
 
     void UnlockWeapon(WeaponData data)
     {
@@ -200,6 +217,18 @@ public class ShopMenuKeyboard : MonoBehaviour
     }
 
     // ---------------- UI ----------------
+
+    void RefreshPoints()
+    {
+        if (pointsText == null) return;
+        if (ScoreManager.Instance == null)
+        {
+            pointsText.text = "Points: 0";
+            return;
+        }
+
+        pointsText.text = "Points: " + ScoreManager.Instance.currentScore;
+    }
 
     void ShowMessage(string msg)
     {

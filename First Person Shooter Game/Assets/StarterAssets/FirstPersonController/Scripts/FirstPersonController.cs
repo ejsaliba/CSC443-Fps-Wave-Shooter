@@ -235,63 +235,54 @@ private bool hasDoubleJumped = false;
 		}
 
 		private void JumpAndGravity()
-		{
-			if (Grounded)
-			{
-				// reset the fall timeout timer
-				_fallTimeoutDelta = FallTimeout;
-
-				// stop our velocity dropping infinitely when grounded
-				if (_verticalVelocity < 0.0f)
-				{
-					_verticalVelocity = -2f;
-				}
-
-				// Jump
-				// FIRST JUMP (grounded)
-if (_input.jump && _jumpTimeoutDelta <= 0.0f && Grounded)
 {
-    _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-}
-
-				// jump timeout
-				if (_jumpTimeoutDelta >= 0.0f)
-				{
-					_jumpTimeoutDelta -= Time.deltaTime;
-				}
-			}
-			else
-			{
-				if (_input.jump && !hasDoubleJumped)
-{
-    if (PlayerMovementUpgrade.Instance != null &&
-        PlayerMovementUpgrade.Instance.HasDoubleJump())
+    if (Grounded)
     {
-        _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-        hasDoubleJumped = true;
+        _fallTimeoutDelta = FallTimeout;
+
+        if (_verticalVelocity < 0.0f)
+            _verticalVelocity = -2f;
+
+        // RESET DOUBLE JUMP ONLY ON LAND
+        hasDoubleJumped = false;
+
+        // FIRST JUMP
+        if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+        {
+            _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+        }
+
+        if (_jumpTimeoutDelta >= 0.0f)
+            _jumpTimeoutDelta -= Time.deltaTime;
+    }
+    else
+    {
+        _jumpTimeoutDelta = JumpTimeout;
+
+        if (_fallTimeoutDelta >= 0.0f)
+            _fallTimeoutDelta -= Time.deltaTime;
+
+        // DOUBLE JUMP (ONLY ONCE)
+        if (_input.jump && !hasDoubleJumped)
+        {
+            if (PlayerMovementUpgrade.Instance != null &&
+                PlayerMovementUpgrade.Instance.HasDoubleJump())
+            {
+                _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+                hasDoubleJumped = true;
+            }
+        }
     }
 
+    // CLEAR INPUT ONCE PER FRAME (IMPORTANT FIX)
     _input.jump = false;
+
+    // GRAVITY
+    if (_verticalVelocity < _terminalVelocity)
+    {
+        _verticalVelocity += Gravity * Time.deltaTime;
+    }
 }
-				// reset the jump timeout timer
-				_jumpTimeoutDelta = JumpTimeout;
-
-				// fall timeout
-				if (_fallTimeoutDelta >= 0.0f)
-				{
-					_fallTimeoutDelta -= Time.deltaTime;
-				}
-
-				// if we are not grounded, do not jump
-				_input.jump = false;
-			}
-
-			// apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
-			if (_verticalVelocity < _terminalVelocity)
-			{
-				_verticalVelocity += Gravity * Time.deltaTime;
-			}
-		}
 
 		private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
 		{

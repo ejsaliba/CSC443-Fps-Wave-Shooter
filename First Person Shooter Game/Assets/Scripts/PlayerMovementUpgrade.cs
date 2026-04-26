@@ -2,22 +2,29 @@ using UnityEngine;
 
 public class PlayerMovementUpgrade : MonoBehaviour
 {
-    public static PlayerMovementUpgrade Instance;
+    public static PlayerMovementUpgrade Instance { get; private set; }
 
-    private bool doubleJumpUnlocked = false;
+    private bool doubleJumpEnabled;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 
     public void EnableDoubleJump()
     {
-        doubleJumpUnlocked = true;
+        doubleJumpEnabled = true;
+        Debug.Log("Double Jump Enabled");
     }
 
     public bool HasDoubleJump()
     {
-        return doubleJumpUnlocked;
+        return doubleJumpEnabled;
     }
 }

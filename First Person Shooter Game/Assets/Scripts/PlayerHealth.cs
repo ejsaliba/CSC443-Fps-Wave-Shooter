@@ -81,6 +81,10 @@ public GameObject deathVFX; // Assign your VFX prefab here
         {
             Instantiate(deathVFX, transform.position, transform.rotation);
         }
+        if (GameOverManager.Instance != null)
+        {
+            GameOverManager.Instance.TriggerGameOver();
+        }
 
         // Destroy player after short delay (lets VFX spawn properly)
         Destroy(gameObject, destroyDelay);

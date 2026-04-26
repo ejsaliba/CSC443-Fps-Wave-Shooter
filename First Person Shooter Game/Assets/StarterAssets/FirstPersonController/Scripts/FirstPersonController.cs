@@ -21,6 +21,9 @@ namespace StarterAssets
 		[Tooltip("Acceleration and deceleration")]
 		public float SpeedChangeRate = 10.0f;
 
+//  DOUBLE JUMP STATE
+private bool hasDoubleJumped = false;
+
 		[Space(10)]
 		[Tooltip("The height the player can jump")]
 		public float JumpHeight = 1.2f;
@@ -156,6 +159,10 @@ namespace StarterAssets
 			// set sphere position, with offset
 			Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
 			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
+		if (Grounded)
+{
+    hasDoubleJumped = false;
+}
 		}
 
 		private void CameraRotation()
@@ -241,11 +248,11 @@ namespace StarterAssets
 				}
 
 				// Jump
-				if (_input.jump && _jumpTimeoutDelta <= 0.0f)
-				{
-					// the square root of H * -2 * G = how much velocity needed to reach desired height
-					_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-				}
+				// FIRST JUMP (grounded)
+if (_input.jump && _jumpTimeoutDelta <= 0.0f && Grounded)
+{
+    _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+}
 
 				// jump timeout
 				if (_jumpTimeoutDelta >= 0.0f)
@@ -255,6 +262,17 @@ namespace StarterAssets
 			}
 			else
 			{
+				if (_input.jump && !hasDoubleJumped)
+{
+    if (PlayerMovementUpgrade.Instance != null &&
+        PlayerMovementUpgrade.Instance.HasDoubleJump())
+    {
+        _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+        hasDoubleJumped = true;
+    }
+
+    _input.jump = false;
+}
 				// reset the jump timeout timer
 				_jumpTimeoutDelta = JumpTimeout;
 

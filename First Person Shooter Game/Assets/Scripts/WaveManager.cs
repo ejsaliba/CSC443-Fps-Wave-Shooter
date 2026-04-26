@@ -18,6 +18,7 @@ public class WaveManager : MonoBehaviour
 
     private bool waitingForPlayer = false;
     private bool waveInProgress = false;
+    private bool waveEnded = false;
 
     private int activeZone = 0; // 0 = A, 1 = B
 
@@ -31,6 +32,18 @@ public class WaveManager : MonoBehaviour
 
     private void Start()
     {
+        if (spawnerA == null || spawnerB == null)
+        {
+            Debug.LogError("WaveManager: Missing spawners!");
+            return;
+        }
+
+        if (barrier == null)
+        {
+            Debug.LogError("WaveManager: Missing barrier reference!");
+            return;
+        }
+
         StartNextWave();
     }
 
@@ -38,13 +51,15 @@ public class WaveManager : MonoBehaviour
     {
         currentWave++;
 
+        waveEnded = false;
+        waitingForPlayer = false;
+        waveInProgress = true;
+
         // switch zones
         activeZone = 1 - activeZone;
         currentSpawner = (activeZone == 0) ? spawnerA : spawnerB;
 
         barrier.SetActive(true);
-        waveInProgress = true;
-        waitingForPlayer = false;
 
         SpawnWave();
     }
@@ -55,7 +70,6 @@ public class WaveManager : MonoBehaviour
         int ranged = 0;
         int explosive = 0;
 
-        // your exact wave logic
         if (currentWave == 1)
         {
             melee = 5;
@@ -93,6 +107,8 @@ public class WaveManager : MonoBehaviour
 
     public void OnEnemyDied()
     {
+        if (waveEnded) return;
+
         enemiesAlive--;
 
         if (enemiesAlive <= 0)
@@ -103,16 +119,28 @@ public class WaveManager : MonoBehaviour
 
     void WaveCompleted()
     {
+        if (waveEnded) return;
+        waveEnded = true;
+
         barrier.SetActive(false);
         waitingForPlayer = true;
         waveInProgress = false;
+
+        // 🔥 SAFE SHOP CALL (THIS FIXES YOUR CRASH)
+        if (ShopMenuKeyboard.Instance != null)
+        {
+            ShopMenuKeyboard.Instance.OpenShop();
+        }
+        else
+        {
+            Debug.LogWarning("ShopMenuKeyboard instance is NULL - shop not opened");
+        }
     }
 
     public void PlayerEnteredZone(int zoneIndex)
     {
         if (!waitingForPlayer) return;
 
-        // must go to the next zone (alternate)
         if (zoneIndex == activeZone)
         {
             StartNextWave();

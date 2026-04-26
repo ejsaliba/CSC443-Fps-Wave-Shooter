@@ -32,6 +32,8 @@ public class ActiveWeapon : MonoBehaviour
 
     private void HandleShoot()
     {
+        if (ShopMenuKeyboard.Instance != null && ShopMenuKeyboard.Instance.IsOpen)
+    return;
         bool canFire = Time.time >= nextFireTime;
 
         if (!canFire || currentWeapon == null || !currentWeapon.HasAmmo)
